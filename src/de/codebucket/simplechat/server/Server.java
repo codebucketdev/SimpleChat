@@ -7,8 +7,11 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.logging.Level;
+
+import de.codebucket.simplechat.client.Logger;
 
 public class Server implements Runnable 
 {
@@ -21,8 +24,6 @@ public class Server implements Runnable
 	private boolean running = false;
 	private Thread run, manage, send, receive;
 	private final int MAX_ATTEMPTS = 5;
-
-	private boolean raw = false;
 
 	public Server(String address, int port) 
 	{
@@ -39,6 +40,22 @@ public class Server implements Runnable
 		}
 		run = new Thread(this, "Server");
 		run.start();
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() 
+		{
+			 
+		    @SuppressWarnings("deprecation")
+			public void run() 
+		    {
+		    	sendToAll("/r/$disconnect:Server shutdown.");
+				Logger.log(Level.INFO, "Closing listening thread");
+				running = false;
+				manage.stop();
+				receive.stop();
+				
+				Logger.log(Level.INFO, "Stopping SimpleChat Server..");
+		    }
+		}));
 	}
 
 	@SuppressWarnings("resource")
@@ -51,27 +68,42 @@ public class Server implements Runnable
 		Scanner scanner = new Scanner(System.in);
 		while (running) 
 		{
-			String text = scanner.nextLine();
-			if (!text.startsWith("/")) 
+			String cmd = null;
+			
+			try
 			{
-				sendToAll("/m/Server: " + text + "/e/");
-				continue;
+				cmd = scanner.nextLine();
 			}
-			text = text.substring(1);
-			if (text.equals("raw")) 
+			catch(NoSuchElementException e) {}
+			
+			if(cmd != null)
 			{
-				raw = !raw;
-			} 
-			else if (text.equals("list")) 
-			{
-				Logger.log(Level.INFO, "Clients:");
-				Logger.log(Level.INFO, "========");
-				for (int i = 0; i < clients.size(); i++) 
+				if (!cmd.startsWith("/")) 
 				{
-					ServerClient c = clients.get(i);
-					Logger.log(Level.INFO, c.name + "(" + c.getID() + "): " + c.address.toString() + ":" + c.port);
+					if(cmd.length() != 0) sendToAll("/m/Console: " + cmd + "/e/");
+					continue;
 				}
-				Logger.log(Level.INFO, "========");
+				
+				cmd = cmd.substring(1);
+				if (cmd.equals("stop")) 
+				{
+					System.exit(0);
+				} 
+				else if (cmd.equals("kickall")) 
+				{
+					sendToAll("/r/$disconnect:Kicked by operator.");
+				} 
+				else if (cmd.equals("list")) 
+				{
+					Logger.log(Level.INFO, "Clients:");
+					Logger.log(Level.INFO, "========");
+					for (int i = 0; i < clients.size(); i++) 
+					{
+						ServerClient c = clients.get(i);
+						Logger.log(Level.INFO, c.name + "(" + c.getID() + "): " + c.address.toString() + ":" + c.port);
+					}
+					Logger.log(Level.INFO, "========");
+				}
 			}
 		}
 	}
@@ -134,7 +166,7 @@ public class Server implements Runnable
 					} 
 					catch (IOException e) 
 					{
-						e.printStackTrace();
+						Logger.log(Level.SEVERE, "Error while receiving data from client " + packet.getAddress() + ":" + packet.getPort() + "!");
 					}
 					process(packet);
 				}
@@ -149,7 +181,7 @@ public class Server implements Runnable
 		{
 			String text = message.substring(3);
 			text = text.split("/e/")[0];
-			Logger.log(Level.INFO, message);
+			Logger.log(Level.INFO, text);
 		}
 		for (int i = 0; i < clients.size(); i++) 
 		{
@@ -168,9 +200,10 @@ public class Server implements Runnable
 				try 
 				{
 					socket.send(packet);
-				} catch (IOException e) 
+				} 
+				catch (IOException e) 
 				{
-					e.printStackTrace();
+					Logger.log(Level.SEVERE, "Error while sending data to client " + packet.getAddress() + ":" + packet.getPort() + "!");
 				}
 			}
 		};
@@ -185,16 +218,15 @@ public class Server implements Runnable
 
 	private void process(DatagramPacket packet) 
 	{
-		String string = new String(packet.getData());
-		if (raw) Logger.log(Level.INFO, string);
+		String string = new String(packet.getData(), 0, packet.getLength());
 		if (string.startsWith("/c/")) 
 		{
 			int id = UniqueIdentifier.getIdentifier();
-			Logger.log(Level.INFO, "Identifier: " + id);
 			clients.add(new ServerClient(string.substring(3, string.length()), packet.getAddress(), packet.getPort(), id));
-			Logger.log(Level.INFO, string.substring(3, string.length()));
+			Logger.log(Level.INFO, "Client " + string.substring(3, string.length()) + " (" + id + ") @ " + packet.getAddress() + ":" + packet.getPort() + " connected.");
 			String ID = "/c/" + id;
 			send(ID, packet.getAddress(), packet.getPort());
+			sendToAll("/n/Client " + string.substring(3, string.length()) + " connected.");
 		} 
 		else if (string.startsWith("/m/")) 
 		{
@@ -209,6 +241,10 @@ public class Server implements Runnable
 		{
 			clientResponse.add(Integer.parseInt(string.split("/i/|/e/")[1]));
 		} 
+		else if (string.startsWith("/r/$password:")) 
+		{
+			//TODO PASSWORT AUTH
+		}
 		else 
 		{
 			Logger.log(Level.INFO, string);
@@ -231,10 +267,12 @@ public class Server implements Runnable
 		if (status) 
 		{
 			message = "Client " + c.name + " (" + c.getID() + ") @ " + c.address.toString() + ":" + c.port + " disconnected.";
+			sendToAll("/n/Client " + c.name + " (" + c.getID() + ") disconnected.");
 		} 
 		else 
 		{
 			message = "Client " + c.name + " (" + c.getID() + ") @ " + c.address.toString() + ":" + c.port + " timed out.";
+			sendToAll("/n/Client " + c.name + " (" + c.getID() + ") timed out.");
 		}
 		Logger.log(Level.INFO, message);
 	}

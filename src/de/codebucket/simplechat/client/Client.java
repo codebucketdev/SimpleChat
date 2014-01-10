@@ -72,7 +72,7 @@ public class Client
 		{
 			Logger.log(Level.SEVERE, "Error while receiving data from server " + getAddress() + ":" + getPort() + "!");
 		}
-		String message = new String(packet.getData());
+		String message = new String(packet.getData(), 0, packet.getLength());
 		return message;
 	}
 
@@ -89,7 +89,7 @@ public class Client
 				} 
 				catch (IOException e) 
 				{
-					Logger.log(Level.SEVERE, "Error while sending data from server " + getAddress() + ":" + getPort() + "!");
+					Logger.log(Level.SEVERE, "Error while sending data to server " + getAddress() + ":" + getPort() + "!");
 				}
 			}
 		};

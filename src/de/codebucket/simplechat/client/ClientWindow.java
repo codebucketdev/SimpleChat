@@ -52,7 +52,7 @@ public class ClientWindow extends JFrame implements Runnable
 		{
 			console(Level.SEVERE, "Failed to connect to server " + client.getAddress() + ":" + client.getPort() + "!");
 			setTitle("Not connected - SimpleChat Client");
-			JOptionPane.showMessageDialog(null,"Failed to connect to server " + client.getAddress() + ":" + client.getPort() + "!","Error - SimpleChat Client", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null,"Failed to connect to server " + client.getAddress() + ":" + client.getPort() + "!","SimpleChat Client", JOptionPane.ERROR_MESSAGE);
 			
 			dispose();
 			JFrame frame = new Login();
@@ -109,6 +109,7 @@ public class ClientWindow extends JFrame implements Runnable
 				if (e.getKeyCode() == KeyEvent.VK_ENTER) 
 				{
 					send(txtMessage.getText(), true);
+					txtMessage.setText("");
 				}
 			}
 		});
@@ -122,6 +123,7 @@ public class ClientWindow extends JFrame implements Runnable
 			public void actionPerformed(ActionEvent e) 
 			{
 				send(txtMessage.getText(), true);
+				txtMessage.setText("");
 			}
 		});
 		btnSend.setBounds(795, 493, 69, 23);
@@ -156,8 +158,6 @@ public class ClientWindow extends JFrame implements Runnable
 			message = "/m/" + message;
 		}
 		client.send(message.getBytes());
-		/*console(Level.INFO, client.getName() + ": " + message);*/
-		txtMessage.setText("");
 	}
 
 	public void listen() 
@@ -172,7 +172,7 @@ public class ClientWindow extends JFrame implements Runnable
 					if (message.startsWith("/c/")) 
 					{
 						client.setID(Integer.parseInt(message.split("/c/|/e/")[1]));
-						console(Level.INFO, "Successfully connected to server! ID: " + client.getID());
+						console(Level.INFO, "Connected to Server " + client.getAddress() + ":" + client.getPort() + "!");
 					} 
 					else if (message.startsWith("/m/")) 
 					{
@@ -180,15 +180,61 @@ public class ClientWindow extends JFrame implements Runnable
 						text = text.split("/e/")[0];
 						console(Level.INFO, text);
 					} 
+					else if (message.startsWith("/n/")) 
+					{
+						String text = message.substring(3);
+						text = text.split("/e/")[0];
+						console(Level.INFO, text);
+					}
+					else if (message.startsWith("/r/$disconnect:")) 
+					{
+						disconnect(message.split(":")[1], true);
+					}
+					else if (message.startsWith("/r/$password:?")) 
+					{
+						
+					}
+					else if (message.startsWith("/r/$invalid:password")) 
+					{
+						disconnect("Invalid or wrong input for password!", false);
+					}
 					else if (message.startsWith("/i/")) 
 					{
-						String text = "/i/" + client.getID() + "/e/";
-						send(text, false);
+						ping(client.getID());
 					}
 				}
 			}
 		};
 		listen.start();
+	}
+	
+	private void disconnect(String reason, boolean send)
+	{
+		if(send)
+		{
+			String disconnect = "/d/" + client.getID() + "/e/";
+			send(disconnect, false);
+		}
+		
+		try 
+		{
+			Thread.sleep(50);
+		} 
+		catch (InterruptedException e) {}
+		
+		running = false;
+		client.close();
+		JOptionPane.showMessageDialog(null,"Lost connection to server: " + reason,"SimpleChat Client", JOptionPane.INFORMATION_MESSAGE);
+		
+		dispose();
+		JFrame frame = new Login();
+		frame.setVisible(true);
+	}
+	
+	private void ping(int id)
+	{
+		String text = "/i/" + id + "/e/";
+		send(text, false);
 	}
 
 	public void console(Level l, String message) 

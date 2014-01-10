@@ -12,6 +12,9 @@ import java.awt.Font;
 import javax.swing.border.TitledBorder;
 import javax.swing.JTextField;
 import javax.swing.JButton;
+
+import de.codebucket.simplechat.server.Logger;
+
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
