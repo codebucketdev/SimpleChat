@@ -37,7 +37,7 @@ public class Logger
 		Calendar c = Calendar.getInstance();
 		SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
 		String timestamp = f.format(c.getTime());
-		logFile = new File(path + "/logs/" + timestamp + ".log");
+		logFile = new File(path + "/logs/client_" + timestamp + ".log");
 	}
 	
 	public static void writeLog(String[] i)
