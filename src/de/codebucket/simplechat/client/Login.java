@@ -13,7 +13,7 @@ import javax.swing.border.TitledBorder;
 import javax.swing.JTextField;
 import javax.swing.JButton;
 
-import de.codebucket.simplechat.server.Logger;
+import de.codebucket.simplechat.client.Logger;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;

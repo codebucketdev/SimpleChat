@@ -11,7 +11,7 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.logging.Level;
 
-import de.codebucket.simplechat.client.Logger;
+import de.codebucket.simplechat.server.Logger;
 
 public class Server implements Runnable 
 {
@@ -24,11 +24,17 @@ public class Server implements Runnable
 	private boolean running = false;
 	private Thread run, manage, send, receive;
 	private final int MAX_ATTEMPTS = 5;
+	
+	private String password;
+	private boolean needPassword;
 
-	public Server(String address, int port) 
+	public Server(String address, int port, String password, boolean needPassword) 
 	{
 		this.address = address;
 		this.port = port;
+		this.password = password;
+		this.needPassword = needPassword;
+		
 		try 
 		{
 			socket = new DatagramSocket(port);
@@ -38,9 +44,9 @@ public class Server implements Runnable
 			e.printStackTrace();
 			return;
 		}
+		
 		run = new Thread(this, "Server");
 		run.start();
-		
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() 
 		{
 			 
@@ -221,12 +227,29 @@ public class Server implements Runnable
 		String string = new String(packet.getData(), 0, packet.getLength());
 		if (string.startsWith("/c/")) 
 		{
-			int id = UniqueIdentifier.getIdentifier();
-			clients.add(new ServerClient(string.substring(3, string.length()), packet.getAddress(), packet.getPort(), id));
-			Logger.log(Level.INFO, "Client " + string.substring(3, string.length()) + " (" + id + ") @ " + packet.getAddress() + ":" + packet.getPort() + " connected.");
-			String ID = "/c/" + id;
-			send(ID, packet.getAddress(), packet.getPort());
-			sendToAll("/n/Client " + string.substring(3, string.length()) + " connected.");
+			if(needPassword == false)
+			{
+				String username = string.substring(3, string.length());
+				InetAddress address = packet.getAddress();
+				int port = packet.getPort();
+				
+				if(!multipleUser(username))
+				{
+					int id = UniqueIdentifier.getIdentifier();
+					clients.add(new ServerClient(username, address, port, id));
+					Logger.log(Level.INFO, "Client " + username + " (" + id + ") @ " + address + ":" + port + " connected.");
+					send("/c/" + id, address, port);
+					sendToAll("/n/Client " + username + " connected.");
+				}
+				else
+				{
+					send("/r/$invalid:username", address, port);
+				}
+			}
+			else
+			{
+				send("/r/$password=?", packet.getAddress(), packet.getPort());
+			}
 		} 
 		else if (string.startsWith("/m/")) 
 		{
@@ -243,12 +266,63 @@ public class Server implements Runnable
 		} 
 		else if (string.startsWith("/r/$password:")) 
 		{
-			//TODO PASSWORT AUTH
+			String[] request = string.split("/c/");
+			
+			if(request.length > 1)
+			{
+				String pass = request[0];
+				
+				if(pass.split(":").length > 1)
+				{
+					String pw = pass.split(":")[1];
+					
+					if(pw.equals(password))
+					{
+						String username = request[1];
+						InetAddress address = packet.getAddress();
+						int port = packet.getPort();
+						
+						if(!multipleUser(username))
+						{
+							int id = UniqueIdentifier.getIdentifier();
+							clients.add(new ServerClient(username, address, port, id));
+							Logger.log(Level.INFO, "Client " + username + " (" + id + ") @ " + address + ":" + port + " connected.");
+							send("/c/" + id, address, port);
+							sendToAll("/n/Client " + username + " connected.");
+						}
+						else
+						{
+							send("/r/$invalid:username", address, port);
+						}
+					}
+					else
+					{
+						send("/r/$invalid:password", packet.getAddress(), packet.getPort());
+					}
+				}
+				else
+				{
+					send("/r/$invalid:password", packet.getAddress(), packet.getPort());
+				}
+			}
 		}
 		else 
 		{
 			Logger.log(Level.INFO, string);
 		}
+	}
+	
+	private boolean multipleUser(String username)
+	{
+		for (int i = 0; i < clients.size(); i++)
+		{
+			if (clients.get(i).name.equals(username))
+			{
+				return true;
+			}
+		}
+		
+		return false;
 	}
 
 	private void disconnect(int id, boolean status) 

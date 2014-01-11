@@ -22,8 +22,8 @@ public class Logger
 		
 		System.out.println(output);
 		
-		//String[] i = {output};
-		//writeLog(i);
+		String[] i = {output};
+		writeLog(i);
 	}
 	
 	public static void createLog(String path)
