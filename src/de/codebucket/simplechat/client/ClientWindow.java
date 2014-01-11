@@ -12,6 +12,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.UIManager;
@@ -22,6 +23,7 @@ import java.awt.Font;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.logging.Level;
+import javax.swing.ScrollPaneConstants;
 
 
 public class ClientWindow extends JFrame implements Runnable 
@@ -32,10 +34,11 @@ public class ClientWindow extends JFrame implements Runnable
 	private JTextArea history;
 	private JTextField txtMessage;
 	private DefaultCaret caret;
-	private Thread run, listen;
+	private Thread run, listen, check;
 	private Client client;
 
 	private boolean running = false;
+	private boolean connecting = false;
 
 	public ClientWindow(String username, String address, int port) 
 	{
@@ -67,13 +70,15 @@ public class ClientWindow extends JFrame implements Runnable
 		
 		history = new JTextArea();
 		history.setLineWrap(true);
-		history.setWrapStyleWord(true);
 		history.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 		history.setEditable(false);
 		caret = (DefaultCaret) history.getCaret();
 		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-		history.setBounds(10, 11, 854, 471);
-		contentPane.add(history);
+		JScrollPane scroll = new JScrollPane(history);
+		scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		scroll.setBounds(10, 11, 854, 471);
+		contentPane.add(scroll);
 		
 		txtMessage = new JTextField();
 		txtMessage.setFont(new Font("Tahoma", Font.PLAIN, 13));
@@ -149,6 +154,7 @@ public class ClientWindow extends JFrame implements Runnable
 					String message = client.receive();
 					if (message.startsWith("/c/")) 
 					{
+						connecting = false;
 						client.setID(Integer.parseInt(message.split("/c/|/e/")[1]));
 						setTitle(client.getName() + "@" + client.getAddress() + ":" + client.getPort() + " - SimpleChat Client");
 						console(Level.INFO, "Connected to Server " + client.getAddress() + ":" + client.getPort() + "!");
@@ -167,10 +173,13 @@ public class ClientWindow extends JFrame implements Runnable
 					}
 					else if (message.startsWith("/r/$disconnect:")) 
 					{
-						disconnect(message.split(":")[1], true);
+						String text = message.substring(3);
+						text = text.split("/e/")[0];
+						disconnect(text.split(":")[1], true);
 					}
 					else if (message.startsWith("/r/$password=?")) 
 					{
+						connecting = false;
 						JPasswordField pwd = new JPasswordField(10);  
 					    int action = JOptionPane.showConfirmDialog(null, pwd,"Enter password to connect",JOptionPane.OK_CANCEL_OPTION);  
 					    if(!(action == 0))
@@ -184,11 +193,19 @@ public class ClientWindow extends JFrame implements Runnable
 					}
 					else if (message.startsWith("/r/$invalid:password")) 
 					{
-						disconnect("Invalid or wrong input for password!", false);
+						error("Invalid or wrong input for password!");
 					}
 					else if (message.startsWith("/r/$invalid:username")) 
 					{
-						disconnect("A user with the same user name already logged in. Please login with a different user name.", false);
+						error("A user with the same username already logged in. Please login with a different user name.");
+					}
+					else if (message.startsWith("/r/$banned:username")) 
+					{
+						error("You were banned from the server.");
+					}
+					else if (message.startsWith("/r/$banned:address")) 
+					{
+						error("You were banned from the server.");
 					}
 					else if (message.startsWith("/i/")) 
 					{
@@ -200,8 +217,42 @@ public class ClientWindow extends JFrame implements Runnable
 		listen.start();
 	}
 	
+	public void check() 
+	{
+		check = new Thread("Check") 
+		{
+			public void run() 
+			{
+				try 
+	            {
+					Thread.sleep(15*1000);
+				} 
+	            catch (InterruptedException e) 
+	            {
+					e.printStackTrace();
+				}
+		        
+		        if(connecting == true)
+		        {
+		        	connecting = false;
+		        	console(Level.SEVERE, "Failed to connect to server " + client.getAddress() + ":" + client.getPort() + "!");
+					setTitle("Not connected - SimpleChat Client");
+					JOptionPane.showMessageDialog(null,"Failed to connect to server " + client.getAddress() + ":" + client.getPort() + "!","SimpleChat Client", JOptionPane.ERROR_MESSAGE);
+					
+					dispose();
+					JFrame frame = new Login();
+					frame.setVisible(true);
+		        }
+			}
+		};
+		check.start();
+	}
+	
 	private void close()
 	{
+		console(Level.INFO, "Disconnected from server.");
+		setTitle("Not connected - SimpleChat Client");
+		connecting = false;
 		running = false;
 		client.close();
 		
@@ -228,10 +279,32 @@ public class ClientWindow extends JFrame implements Runnable
 		{
 			String connection = "/c/" + client.getName();
 			client.send(connection.getBytes());
+			connecting = true;
 			running = true;
 			run = new Thread(this, "Running");
 			run.start();
+			check();
 		}
+	}
+	
+	private void error(String reason)
+	{
+		setTitle("Not connected - SimpleChat Client");
+		try 
+		{
+			Thread.sleep(50);
+		} 
+		catch (InterruptedException e) {}
+		
+		running = false;
+		connecting = false;
+		client.close();
+		console(Level.INFO, "Lost connection to server: " + reason);
+		JOptionPane.showMessageDialog(null,"Lost connection to server:\n" + reason,"SimpleChat Client", JOptionPane.ERROR_MESSAGE);
+		
+		dispose();
+		JFrame frame = new Login();
+		frame.setVisible(true);
 	}
 	
 	private void disconnect(String reason, boolean send)
@@ -242,6 +315,7 @@ public class ClientWindow extends JFrame implements Runnable
 			send(disconnect, false);
 		}
 		
+		setTitle("Not connected - SimpleChat Client");
 		try 
 		{
 			Thread.sleep(50);
@@ -250,7 +324,8 @@ public class ClientWindow extends JFrame implements Runnable
 		
 		running = false;
 		client.close();
-		JOptionPane.showMessageDialog(null,"Lost connection to server: " + reason,"SimpleChat Client", JOptionPane.INFORMATION_MESSAGE);
+		console(Level.INFO, "Lost connection to server: " + reason);
+		JOptionPane.showMessageDialog(null,"Lost connection to server:\n" + reason,"SimpleChat Client", JOptionPane.INFORMATION_MESSAGE);
 		
 		dispose();
 		JFrame frame = new Login();

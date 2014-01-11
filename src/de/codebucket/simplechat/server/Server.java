@@ -6,27 +6,32 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.logging.Level;
 
 import de.codebucket.simplechat.server.Logger;
+import de.codebucket.simplechat.server.Commands.Executor;
 
 public class Server implements Runnable 
 {
-	private List<ServerClient> clients = new ArrayList<ServerClient>();
+	public List<ServerClient> clients = new ArrayList<ServerClient>();
 	private List<Integer> clientResponse = new ArrayList<Integer>();
 
-	private DatagramSocket socket;
-	private String address;
-	private int port;
+	public DatagramSocket socket;
+	public String address;
+	public int port;
 	private boolean running = false;
 	private Thread run, manage, send, receive;
 	private final int MAX_ATTEMPTS = 5;
 	
-	private String password;
-	private boolean needPassword;
+	public String password;
+	public boolean needPassword;
+	public List<String> bannedUsers = new ArrayList<String>();
+	public List<String> bannedAddresses = new ArrayList<String>();
+	private String shutdownReason = "Server shutdown.";
 
 	public Server(String address, int port, String password, boolean needPassword) 
 	{
@@ -53,7 +58,8 @@ public class Server implements Runnable
 		    @SuppressWarnings("deprecation")
 			public void run() 
 		    {
-		    	sendToAll("/r/$disconnect:Server shutdown.");
+		    	sendToAll("/r/$disconnect:" + shutdownReason);
+		    	Logger.log(Level.WARNING, "DSCT: Socket closed!");
 				Logger.log(Level.INFO, "Closing listening thread");
 				running = false;
 				manage.stop();
@@ -68,9 +74,10 @@ public class Server implements Runnable
 	public void run() 
 	{
 		running = true;
-		Logger.log(Level.INFO, "Listening on " + address + ":" + port);
 		manageClients();
 		receive();
+		
+		Logger.log(Level.INFO, "Listening on " + address + ":" + port);
 		Scanner scanner = new Scanner(System.in);
 		while (running) 
 		{
@@ -84,34 +91,50 @@ public class Server implements Runnable
 			
 			if(cmd != null)
 			{
-				if (!cmd.startsWith("/")) 
+				if(cmd.length() != 0)
 				{
-					if(cmd.length() != 0) sendToAll("/m/Console: " + cmd + "/e/");
-					continue;
-				}
-				
-				cmd = cmd.substring(1);
-				if (cmd.equals("stop")) 
-				{
-					System.exit(0);
-				} 
-				else if (cmd.equals("kickall")) 
-				{
-					sendToAll("/r/$disconnect:Kicked by operator.");
-				} 
-				else if (cmd.equals("list")) 
-				{
-					Logger.log(Level.INFO, "Clients:");
-					Logger.log(Level.INFO, "========");
-					for (int i = 0; i < clients.size(); i++) 
-					{
-						ServerClient c = clients.get(i);
-						Logger.log(Level.INFO, c.name + "(" + c.getID() + "): " + c.address.toString() + ":" + c.port);
-					}
-					Logger.log(Level.INFO, "========");
+					String[] args = cmd.split(" ");
+					String command = args[0];
+				    final List<String> list =  new ArrayList<String>();
+				    Collections.addAll(list, args); 
+				    list.remove(args[0]);
+				    args = list.toArray(new String[list.size()]);
+					Commands.dispatchCommand(this, command, args, Executor.SERVER);
 				}
 			}
 		}
+	}
+	
+	public ServerClient getClientByName(String name)
+	{
+		for (int i = 0; i < clients.size(); i++)
+		{
+			if (clients.get(i).name.equals(name))
+			{
+				return clients.get(i);
+			}
+		}
+		
+		return null;
+	}
+	
+	public ServerClient getClientByID(int id)
+	{
+		for (int i = 0; i < clients.size(); i++)
+		{
+			if (clients.get(i).getID() == id)
+			{
+				return clients.get(i);
+			}
+		}
+		
+		return null;
+	}
+	
+	public void stop(String reason)
+	{
+		this.shutdownReason = reason;
+		System.exit(0);
 	}
 
 	private void manageClients() 
@@ -181,7 +204,7 @@ public class Server implements Runnable
 		receive.start();
 	}
 
-	private void sendToAll(String message) 
+	public void sendToAll(String message) 
 	{
 		if (message.startsWith("/m/")) 
 		{
@@ -196,7 +219,7 @@ public class Server implements Runnable
 		}
 	}
 
-	private void send(final byte[] data, final InetAddress address, final int port) 
+	public void send(final byte[] data, final InetAddress address, final int port) 
 	{
 		send = new Thread("Send") 
 		{
@@ -216,7 +239,7 @@ public class Server implements Runnable
 		send.start();
 	}
 
-	private void send(String message, InetAddress address, int port) 
+	public void send(String message, InetAddress address, int port) 
 	{
 		message += "/e/";
 		send(message.getBytes(), address, port);
@@ -227,29 +250,52 @@ public class Server implements Runnable
 		String string = new String(packet.getData(), 0, packet.getLength());
 		if (string.startsWith("/c/")) 
 		{
-			if(needPassword == false)
+			String username = string.substring(3, string.length());
+			InetAddress address = packet.getAddress();
+			int port = packet.getPort();
+			
+			if(bannedAddress(address.getHostAddress()) == false)
 			{
-				String username = string.substring(3, string.length());
-				InetAddress address = packet.getAddress();
-				int port = packet.getPort();
-				
-				if(!multipleUser(username))
+				if(bannedUser(username) == false)
 				{
-					int id = UniqueIdentifier.getIdentifier();
-					clients.add(new ServerClient(username, address, port, id));
-					Logger.log(Level.INFO, "Client " + username + " (" + id + ") @ " + address + ":" + port + " connected.");
-					send("/c/" + id, address, port);
-					sendToAll("/n/Client " + username + " connected.");
+					if(!multipleUser(username))
+					{
+						if(needPassword == false)
+						{					
+							int id = UniqueIdentifier.getIdentifier();
+							clients.add(new ServerClient(username, address, port, id));
+							Logger.log(Level.INFO, "Client " + username + " (ID" + id + ") @ " + address + ":" + port + " connected.");
+							send("/c/" + id, address, port);
+							try 
+							{
+								Thread.sleep(50);
+							} 
+							catch (InterruptedException e) 
+							{
+								e.printStackTrace();
+							}
+							sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
+						}
+						else
+						{
+							send("/r/$password=?", packet.getAddress(), packet.getPort());
+						}
+					}
+					else
+					{
+						send("/r/$invalid:username", address, port);
+					}
 				}
 				else
 				{
-					send("/r/$invalid:username", address, port);
+					send("/r/$banned:username", address, port);
 				}
 			}
 			else
 			{
-				send("/r/$password=?", packet.getAddress(), packet.getPort());
+				send("/r/$banned:address", address, port);
 			}
+				
 		} 
 		else if (string.startsWith("/m/")) 
 		{
@@ -282,18 +328,19 @@ public class Server implements Runnable
 						InetAddress address = packet.getAddress();
 						int port = packet.getPort();
 						
-						if(!multipleUser(username))
+						int id = UniqueIdentifier.getIdentifier();
+						clients.add(new ServerClient(username, address, port, id));
+						Logger.log(Level.INFO, "Client " + username + " (ID" + id + ") @ " + address + ":" + port + " connected.");
+						send("/c/" + id, address, port);
+						try 
 						{
-							int id = UniqueIdentifier.getIdentifier();
-							clients.add(new ServerClient(username, address, port, id));
-							Logger.log(Level.INFO, "Client " + username + " (" + id + ") @ " + address + ":" + port + " connected.");
-							send("/c/" + id, address, port);
-							sendToAll("/n/Client " + username + " connected.");
-						}
-						else
+							Thread.sleep(50);
+						} 
+						catch (InterruptedException e) 
 						{
-							send("/r/$invalid:username", address, port);
+							e.printStackTrace();
 						}
+						sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
 					}
 					else
 					{
@@ -312,7 +359,7 @@ public class Server implements Runnable
 		}
 	}
 	
-	private boolean multipleUser(String username)
+	public boolean multipleUser(String username)
 	{
 		for (int i = 0; i < clients.size(); i++)
 		{
@@ -324,8 +371,18 @@ public class Server implements Runnable
 		
 		return false;
 	}
+	
+	public boolean bannedUser(String username)
+	{
+		return bannedUsers.contains(username);
+	}
+	
+	public boolean bannedAddress(String address)
+	{
+		return bannedAddresses.contains(address);
+	}
 
-	private void disconnect(int id, boolean status) 
+	public void disconnect(int id, boolean status) 
 	{
 		ServerClient c = null;
 		for (int i = 0; i < clients.size(); i++)
@@ -340,13 +397,13 @@ public class Server implements Runnable
 		String message = "";
 		if (status) 
 		{
-			message = "Client " + c.name + " (" + c.getID() + ") @ " + c.address.toString() + ":" + c.port + " disconnected.";
-			sendToAll("/n/Client " + c.name + " (" + c.getID() + ") disconnected.");
+			message = "Client " + c.name + " (ID" + c.getID() + ") @ " + c.address.toString() + ":" + c.port + " disconnected.";
+			sendToAll("/n/Client " + c.name + " (ID" + c.getID() + ") disconnected.");
 		} 
 		else 
 		{
-			message = "Client " + c.name + " (" + c.getID() + ") @ " + c.address.toString() + ":" + c.port + " timed out.";
-			sendToAll("/n/Client " + c.name + " (" + c.getID() + ") timed out.");
+			message = "Client " + c.name + " (ID" + c.getID() + ") @ " + c.address.toString() + ":" + c.port + " timed out.";
+			sendToAll("/n/Client " + c.name + " (ID" + c.getID() + ") timed out.");
 		}
 		Logger.log(Level.INFO, message);
 	}
