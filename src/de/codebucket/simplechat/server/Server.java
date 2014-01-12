@@ -41,6 +41,8 @@ public class Server implements Runnable
 		this.port = port;
 		this.password = password;
 		this.needPassword = needPassword;
+		loadBanned();
+		loadMotd();
 		
 		try 
 		{
@@ -332,13 +334,6 @@ public class Server implements Runnable
 							clients.add(new ServerClient(username, address, port, id));
 							Logger.log(Level.INFO, "Client " + username + " (ID" + id + ") @ " + address + ":" + port + " connected.");
 							send("/c/" + id, address, port);
-							for(String m : motd)
-							{
-								if(m.length() != 0)
-								{
-									send("/n/" + m, address, port);
-								}
-							}
 							
 							try 
 							{
@@ -348,6 +343,15 @@ public class Server implements Runnable
 							{
 								e.printStackTrace();
 							}
+							
+							for(String m : motd)
+							{
+								if(m.length() != 0)
+								{
+									send("/n/" + m, address, port);
+								}
+							}
+							
 							sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
 						}
 						else
@@ -362,12 +366,12 @@ public class Server implements Runnable
 				}
 				else
 				{
-					send("/r/$banned:username/r/" + getBanReason(username, false), address, port);
+					send("/r/$banned:username,$reason:" + getBanReason(username, false), address, port);
 				}
 			}
 			else
 			{
-				send("/r/$banned:address/r/" + getBanReason(address.getHostAddress(), true), address, port);
+				send("/r/$banned:address,$reason:" + getBanReason(address.getHostAddress(), true), address, port);
 			}
 				
 		} 
@@ -406,13 +410,6 @@ public class Server implements Runnable
 						clients.add(new ServerClient(username, address, port, id));
 						Logger.log(Level.INFO, "Client " + username + " (ID" + id + ") @ " + address + ":" + port + " connected.");
 						send("/c/" + id, address, port);
-						for(String m : motd)
-						{
-							if(m.length() != 0)
-							{
-								send("/n/" + m, address, port);
-							}
-						}
 						
 						try 
 						{
@@ -422,6 +419,15 @@ public class Server implements Runnable
 						{
 							e.printStackTrace();
 						}
+						
+						for(String m : motd)
+						{
+							if(m.length() != 0)
+							{
+								send("/n/" + m, address, port);
+							}
+						}
+						
 						sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
 					}
 					else
@@ -458,7 +464,7 @@ public class Server implements Runnable
 	{
 		for(String u : bannedUsers)
 		{
-			String[] check = u.split("/r/");
+			String[] check = u.split(",reason:");
 			if(check[0].equals(username))
 			{
 				return true;
@@ -472,7 +478,7 @@ public class Server implements Runnable
 	{
 		for(String a : bannedAddresses)
 		{
-			String[] check = a.split("/r/");
+			String[] check = a.split(",reason:");
 			if(check[0].equals(address))
 			{
 				return true;
@@ -488,7 +494,7 @@ public class Server implements Runnable
 		{
 			for(String u : bannedUsers)
 			{
-				String[] check = u.split("/r/");
+				String[] check = u.split(",reason:");
 				return check[1];
 			}
 		}
@@ -496,7 +502,7 @@ public class Server implements Runnable
 		{
 			for(String a : bannedAddresses)
 			{
-				String[] check = a.split("/r/");
+				String[] check = a.split(",reason:");
 				return check[1];
 			}
 		}

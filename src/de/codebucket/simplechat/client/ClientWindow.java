@@ -202,14 +202,16 @@ public class ClientWindow extends JFrame implements Runnable
 					else if (message.startsWith("/r/$banned:username")) 
 					{
 						String text = message.substring(3);
-						text = text.split("/r/")[1];
-						error(text);
+						text = text.split(",$reason:")[1];
+						String reason = text.split("/e/")[0];
+						error(reason);
 					}
 					else if (message.startsWith("/r/$banned:address")) 
 					{
 						String text = message.substring(3);
-						text = text.split("/r/")[1];
-						error(text);
+						text = text.split(",$reason:")[1];
+						String reason = text.split("/e/")[0];
+						error(reason);
 					}
 					else if (message.startsWith("/i/")) 
 					{

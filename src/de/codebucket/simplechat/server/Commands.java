@@ -104,7 +104,7 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedUsers.add(c.name + "/r/" + getText(args, 1));
+								s.bannedUsers.add(c.name+ ",reason:" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned client " + c.name + ": " + getText(args, 1));
 								s.send("/r/$disconnect:" + getText(args, 1), c.address, c.port);
 								s.saveBanned();
@@ -137,7 +137,7 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedUsers.add(c.name + "/r/" + getText(args, 1));
+								s.bannedUsers.add(c.name+ ",reason:" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned client " + c.name + ": " + getText(args, 1));
 								s.send("/r/$disconnect:" + getText(args, 1), c.address, c.port);
 								s.saveBanned();
@@ -161,7 +161,7 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedUsers.add(args[0] + "/r/" + getText(args, 1));
+								s.bannedUsers.add(args[0]+ ",reason:" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned client " + args[0] + ": " + getText(args, 1));
 								s.saveBanned();
 							}
@@ -198,7 +198,7 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedAddresses.add(c.address.getHostAddress() + "/r/" + getText(args, 1));
+								s.bannedAddresses.add(c.address.getHostAddress()+ ",reason:" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned address " + c.address.getHostAddress() + ": " + getText(args, 1));
 								s.send("/r/$disconnect:" + getText(args, 1), c.address, c.port);
 								s.saveBanned();
@@ -231,7 +231,7 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedAddresses.add(c.address.getHostAddress() + "/r/" + getText(args, 1));
+								s.bannedAddresses.add(c.address.getHostAddress()+ ",reason:" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned address " + c.address.getHostAddress() + ": " + getText(args, 1));
 								s.send("/r/$disconnect:" + getText(args, 1), c.address, c.port);
 								s.saveBanned();
@@ -255,7 +255,7 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedAddresses.add(args[0] + "/r/" + getText(args, 1));
+								s.bannedAddresses.add(args[0]+ ",reason:" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned address " + args[0] + ": " + getText(args, 1));
 								s.saveBanned();
 							}

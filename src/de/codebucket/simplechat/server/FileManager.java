@@ -23,8 +23,14 @@ public class FileManager
 		        list.add(line);
 		    }
 		} 
-		catch (FileNotFoundException e) {}
-		catch (IOException e) {}
+		catch (FileNotFoundException e) 
+		{
+			e.printStackTrace();
+		}
+		catch (IOException e) 
+	    {
+	    	e.printStackTrace();
+	    }
 		
 		return list.toArray(new String[list.size()]);
 	}
@@ -37,7 +43,10 @@ public class FileManager
 			writer.print("");
 			writer.close();
 		} 
-		catch (FileNotFoundException e) {}
+		catch (FileNotFoundException e) 
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	public static void writeFile(File file, String[] i)
@@ -58,6 +67,9 @@ public class FileManager
 
 	    	buffwriter.flush();
 	    }
-	    catch (IOException e) {}
+	    catch (IOException e) 
+	    {
+	    	e.printStackTrace();
+	    }
 	}
 }
