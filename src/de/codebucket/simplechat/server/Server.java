@@ -2,10 +2,12 @@ package de.codebucket.simplechat.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -174,8 +176,14 @@ public class Server implements Runnable
 	
 	public String getWorkingDirectory()
 	{
-		String path = ServerMain.class.getClassLoader().getResource("").getPath();
-		path = path.substring(1, path.length());
+		String path = "";
+		try 
+		{
+			String classpath = ClassLoader.getSystemClassLoader().getResource(".").getPath();
+			path = URLDecoder.decode(classpath, "UTF-8");
+			path = path.substring(1, path.length());
+		} 
+		catch (UnsupportedEncodingException e1) {}
 		return path;
 	}
 	
@@ -344,6 +352,7 @@ public class Server implements Runnable
 								e.printStackTrace();
 							}
 							
+							sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
 							for(String m : motd)
 							{
 								if(m.length() != 0)
@@ -351,8 +360,6 @@ public class Server implements Runnable
 									send("/n/" + m, address, port);
 								}
 							}
-							
-							sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
 						}
 						else
 						{
@@ -366,12 +373,12 @@ public class Server implements Runnable
 				}
 				else
 				{
-					send("/r/$banned:username,$reason:" + getBanReason(username, false), address, port);
+					send("/r/$banned:username=" + getBanReason(username, false), address, port);
 				}
 			}
 			else
 			{
-				send("/r/$banned:address,$reason:" + getBanReason(address.getHostAddress(), true), address, port);
+				send("/r/$banned:address=" + getBanReason(address.getHostAddress(), true), address, port);
 			}
 				
 		} 
@@ -379,6 +386,28 @@ public class Server implements Runnable
 		{
 			sendToAll(string);
 		} 
+		else if (string.startsWith("/b/"))
+		{
+			String text = string.substring(3);
+			String[] splitted = text.split("=");
+			
+			if(splitted.length > 1)
+			{
+				String cmd = splitted[1];
+				ServerClient c = getClientByName(splitted[0]);
+				if(cmd.length() != 0)
+				{
+					String[] args = cmd.split(" ");
+					String command = args[0];
+				    final List<String> list =  new ArrayList<String>();
+				    Collections.addAll(list, args); 
+				    list.remove(args[0]);
+				    args = list.toArray(new String[list.size()]);
+					Commands.performCommand(this, command, args, Executor.CLIENT, c);
+					Logger.log(Level.INFO, c.name + " issued server command: " + splitted[1]);
+				}
+			}
+		}
 		else if (string.startsWith("/d/")) 
 		{
 			String id = string.split("/d/|/e/")[1];
@@ -420,6 +449,7 @@ public class Server implements Runnable
 							e.printStackTrace();
 						}
 						
+						sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
 						for(String m : motd)
 						{
 							if(m.length() != 0)
@@ -427,8 +457,6 @@ public class Server implements Runnable
 								send("/n/" + m, address, port);
 							}
 						}
-						
-						sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
 					}
 					else
 					{
@@ -464,8 +492,9 @@ public class Server implements Runnable
 	{
 		for(String u : bannedUsers)
 		{
-			String[] check = u.split(",reason:");
-			if(check[0].equals(username))
+			String[] check = u.split("=");
+			String[] user = check[0].split("username:");
+			if(user[0].equals(username))
 			{
 				return true;
 			}
@@ -478,8 +507,9 @@ public class Server implements Runnable
 	{
 		for(String a : bannedAddresses)
 		{
-			String[] check = a.split(",reason:");
-			if(check[0].equals(address))
+			String[] check = a.split("=");
+			String[] addr = check[0].split("address:");
+			if(addr[0].equals(address))
 			{
 				return true;
 			}
@@ -494,16 +524,24 @@ public class Server implements Runnable
 		{
 			for(String u : bannedUsers)
 			{
-				String[] check = u.split(",reason:");
-				return check[1];
+				String[] check = u.split("=");
+				String[] user = check[0].split("username:");
+				if(user[0].equals(search))
+				{
+					return check[1];
+				}
 			}
 		}
 		else
 		{
 			for(String a : bannedAddresses)
 			{
-				String[] check = a.split(",reason:");
-				return check[1];
+				String[] check = a.split("=");
+				String[] addr = check[0].split("address:");
+				if(addr[0].equals(search))
+				{
+					return check[1];
+				}
 			}
 		}
 		

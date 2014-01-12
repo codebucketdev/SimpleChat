@@ -25,7 +25,6 @@ import java.util.Calendar;
 import java.util.logging.Level;
 import javax.swing.ScrollPaneConstants;
 
-
 public class ClientWindow extends JFrame implements Runnable 
 {
 	private static final long serialVersionUID = 1L;
@@ -88,8 +87,17 @@ public class ClientWindow extends JFrame implements Runnable
 			{
 				if (e.getKeyCode() == KeyEvent.VK_ENTER) 
 				{
-					send(txtMessage.getText(), true);
-					txtMessage.setText("");
+					if(txtMessage.getText().startsWith("/"))
+					{
+						String cmd = txtMessage.getText().substring(1);
+						send("/b/" + client.getName() + "=" + cmd, false);
+						txtMessage.setText("");
+					}
+					else
+					{
+						send(txtMessage.getText(), true);
+						txtMessage.setText("");
+					}
 				}
 			}
 		});
@@ -102,8 +110,17 @@ public class ClientWindow extends JFrame implements Runnable
 		{
 			public void actionPerformed(ActionEvent e) 
 			{
-				send(txtMessage.getText(), true);
-				txtMessage.setText("");
+				if(txtMessage.getText().startsWith("/"))
+				{
+					String cmd = txtMessage.getText().substring(1);
+					send("/b/" + client.getName() + "=" + cmd, false);
+					txtMessage.setText("");
+				}
+				else
+				{
+					send(txtMessage.getText(), true);
+					txtMessage.setText("");
+				}
 			}
 		});
 		btnSend.setBounds(795, 493, 69, 23);
@@ -175,7 +192,16 @@ public class ClientWindow extends JFrame implements Runnable
 					{
 						String text = message.substring(3);
 						text = text.split("/e/")[0];
-						disconnect(text.split(":")[1], true);
+						disconnect("[Kicked] " + text.split(":")[1], true);
+					}
+					else if (message.startsWith("/r/$poke=")) 
+					{
+						String text = message.substring(3);
+						text = text.split("/e/")[0];
+						String[] getted = text.split("/m/");
+						String user = getted[0].split("=")[1];
+						String msg = getted[1];						
+						poke(user, msg);
 					}
 					else if (message.startsWith("/r/$password=?")) 
 					{
@@ -202,16 +228,14 @@ public class ClientWindow extends JFrame implements Runnable
 					else if (message.startsWith("/r/$banned:username")) 
 					{
 						String text = message.substring(3);
-						text = text.split(",$reason:")[1];
-						String reason = text.split("/e/")[0];
-						error(reason);
+						String reason = text.split("=")[1].split("/e/")[0];
+						error("[Banned] " + reason);
 					}
 					else if (message.startsWith("/r/$banned:address")) 
 					{
 						String text = message.substring(3);
-						text = text.split(",$reason:")[1];
-						String reason = text.split("/e/")[0];
-						error(reason);
+						String reason = text.split("=")[1].split("/e/")[0];
+						error("[Banned] " + reason);
 					}
 					else if (message.startsWith("/i/")) 
 					{
@@ -291,6 +315,19 @@ public class ClientWindow extends JFrame implements Runnable
 			run.start();
 			check();
 		}
+	}
+	
+	private void poke(final String user, final String msg)
+	{
+		Thread t = new Thread(new Runnable()
+		{
+	        public void run()
+	        {
+	        	console(Level.INFO, user + " has poked you: " + msg);
+	    		JOptionPane.showMessageDialog(null, user + " has poked you:\n" + msg,"SimpleChat Client", JOptionPane.INFORMATION_MESSAGE);
+	        }
+	    });
+		t.start();
 	}
 	
 	private void error(String reason)

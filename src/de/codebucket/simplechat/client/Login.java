@@ -20,6 +20,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 
 @SuppressWarnings("unused")
@@ -67,6 +72,13 @@ public class Login extends JFrame
 			e.printStackTrace();
 		}
 		
+		final List<Character> allowed = new ArrayList<>();
+		char[] chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz'.-_".toCharArray();
+		for(char c : chars)
+		{
+			allowed.add(Character.valueOf(c));
+		}
+		
 		setType(Type.POPUP);
 		setResizable(false);
 		setTitle("SimpleChat v0.8");
@@ -100,6 +112,25 @@ public class Login extends JFrame
 		panel.add(lblUsername);
 		
 		username = new JTextField();
+		username.addKeyListener(new KeyAdapter() 
+		{
+		    public void keyTyped(KeyEvent e) 
+		    {
+		    	Character c = Character.valueOf(e.getKeyChar());
+		    	if (!(allowed.contains(c) || (c == KeyEvent.VK_BACK_SPACE) || (c == KeyEvent.VK_DELETE))) 
+		    	{
+		    		e.consume();
+		    	}
+		    	else
+		    	{
+		    		if(username.getText().length() > 31)
+		    		{
+		    			getToolkit().beep();
+			    		e.consume();
+		    		}
+		    	}
+		    }
+		});
 		username.setBounds(10, 45, 229, 20);
 		panel.add(username);
 		username.setColumns(10);
@@ -127,12 +158,11 @@ public class Login extends JFrame
 		    	char c = e.getKeyChar();
 		    	if (!((c >= '0') && (c <= '9') || (c == KeyEvent.VK_BACK_SPACE) || (c == KeyEvent.VK_DELETE))) 
 		    	{
-		    		getToolkit().beep();
 		    		e.consume();
 		    	}
 		    	else
 		    	{
-		    		if(port.getText().length() > 9)
+		    		if(!(port.getText().length() < 10))
 		    		{
 		    			getToolkit().beep();
 			    		e.consume();
@@ -151,7 +181,7 @@ public class Login extends JFrame
 			{
 				String lUsername = username.getText();
 				
-				if(lUsername.length() != 0)
+				if(lUsername.length() != 0 && lUsername.length() < 32)
 				{
 					String lAddress = address.getText();
 					String lPortString = port.getText();
@@ -166,14 +196,17 @@ public class Login extends JFrame
 						lPortString = "8192";
 					}
 					
-					if(isInteger(lPortString))
+					if(lPortString.length() < 10)
 					{
-						int lPort = Integer.parseInt(lPortString);
-						login(lUsername, lAddress, lPort);
-					}
-					else
-					{
-						getToolkit().beep();
+						if(isInteger(lPortString))
+						{
+							int lPort = Integer.parseInt(lPortString);
+							login(lUsername, lAddress, lPort);
+						}
+						else
+						{
+							getToolkit().beep();
+						}
 					}
 				}
 				else
@@ -211,10 +244,16 @@ public class Login extends JFrame
 	 */
 	public static void main(String[] args) 
 	{
-		String path = Login.class.getClassLoader().getResource("").getPath();
-		path = path.substring(1, path.length());
-		Logger.createLog(path);
+		String path = "";
+		try 
+		{
+			String classpath = ClassLoader.getSystemClassLoader().getResource(".").getPath();
+			path = URLDecoder.decode(classpath, "UTF-8");
+			path = path.substring(1, path.length());
+		} 
+		catch (UnsupportedEncodingException e1) {}
 		
+		Logger.createLog(path);
 		Logger.log(Level.INFO, "Starting SimpleChat v0.8");
 		Logger.log(Level.INFO, "Working directory: " + path);
 		Logger.log(Level.INFO, "Initialising SimpleChat Client..");

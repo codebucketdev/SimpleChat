@@ -1,5 +1,7 @@
 package de.codebucket.simplechat.server;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.logging.Level;
 
 @SuppressWarnings("unused")
@@ -28,10 +30,16 @@ public class ServerMain
 
     public static void main(String[] args) 
     {
-    	String path = ServerMain.class.getClassLoader().getResource("").getPath();
-		path = path.substring(1, path.length());
-		Logger.createLog(path);
+    	String path = "";
+		try 
+		{
+			String classpath = ClassLoader.getSystemClassLoader().getResource(".").getPath();
+			path = URLDecoder.decode(classpath, "UTF-8");
+			path = path.substring(1, path.length());
+		} 
+		catch (UnsupportedEncodingException e1) {}
 		
+		Logger.createLog(path);
 		Logger.log(Level.INFO, "Running SimpleChat Server v0.8");
 		Logger.log(Level.INFO, "Working directory: " + path);
 		Logger.log(Level.INFO, "Initialising SimpleChat Server..");
