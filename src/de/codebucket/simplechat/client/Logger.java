@@ -1,9 +1,6 @@
 package de.codebucket.simplechat.client;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.logging.Level;
@@ -23,7 +20,7 @@ public class Logger
 		System.out.println(output);
 		
 		String[] i = {output};
-		writeLog(i);
+		FileManager.writeFile(logFile, i);
 	}
 	
 	public static void createLog(String path)
@@ -38,30 +35,5 @@ public class Logger
 		SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
 		String timestamp = f.format(c.getTime());
 		logFile = new File(path + "/logs/client_" + timestamp + ".log");
-	}
-	
-	public static void writeLog(String[] i)
-	{
-	    File log = logFile;
-	    BufferedWriter buffwriter = null;
-	    FileWriter filewriter = null;
-	    
-	    try 
-	    {
-	      filewriter = new FileWriter(log, true);
-	      buffwriter = new BufferedWriter(filewriter);
-
-	      for (String s : i)
-	      {
-	        buffwriter.write(s);
-	        buffwriter.newLine();
-	      }
-
-	      buffwriter.flush();
-	    }
-	    catch (IOException e)
-	    {
-	    	
-	    }
 	}
 }
