@@ -1,5 +1,6 @@
 package de.codebucket.simplechat.server;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -27,6 +28,7 @@ public class Server implements Runnable
 	private Thread run, manage, send, receive;
 	private final int MAX_ATTEMPTS = 5;
 	
+	public String[] motd;
 	public String password;
 	public boolean needPassword;
 	public List<String> bannedUsers = new ArrayList<String>();
@@ -105,6 +107,76 @@ public class Server implements Runnable
 		}
 	}
 	
+	public void stop(String reason)
+	{
+		this.shutdownReason = reason;
+		System.exit(0);
+	}
+	
+	public void loadBanned()
+	{
+		File file = new File(getWorkingDirectory() + "/banned.txt");
+		if(file.exists())
+		{
+			String[] lines = FileManager.readFile(file);
+			
+			for(String l : lines)
+			{
+				if(l.startsWith("username:"))
+				{
+					bannedUsers.add(l.split(":")[1]);
+				}
+				else if(l.startsWith("address:"))
+				{
+					bannedAddresses.add(l.split(":")[1]);
+				}
+			}
+		}
+		else
+		{
+			FileManager.clearFile(file);
+		}
+	}
+	
+	public void saveBanned()
+	{
+		File file = new File(getWorkingDirectory() + "/banned.txt");
+		FileManager.clearFile(file);
+		
+		List<String> lines = new ArrayList<>();
+		for(String username : bannedUsers)
+		{
+			lines.add("username:"+username);
+		}
+		for(String address : bannedAddresses)
+		{
+			lines.add("address:"+address);
+		}
+		
+		String[] write = lines.toArray(new String[lines.size()]);
+		FileManager.writeFile(file, write);
+	}
+	
+	public void loadMotd()
+	{
+		File file = new File(getWorkingDirectory() + "/motd.txt");
+		if(file.exists())
+		{
+			motd = FileManager.readFile(file);
+		}
+		else
+		{
+			FileManager.clearFile(file);
+		}
+	}
+	
+	public String getWorkingDirectory()
+	{
+		String path = ServerMain.class.getClassLoader().getResource("").getPath();
+		path = path.substring(1, path.length());
+		return path;
+	}
+	
 	public ServerClient getClientByName(String name)
 	{
 		for (int i = 0; i < clients.size(); i++)
@@ -129,12 +201,6 @@ public class Server implements Runnable
 		}
 		
 		return null;
-	}
-	
-	public void stop(String reason)
-	{
-		this.shutdownReason = reason;
-		System.exit(0);
 	}
 
 	private void manageClients() 
@@ -266,6 +332,14 @@ public class Server implements Runnable
 							clients.add(new ServerClient(username, address, port, id));
 							Logger.log(Level.INFO, "Client " + username + " (ID" + id + ") @ " + address + ":" + port + " connected.");
 							send("/c/" + id, address, port);
+							for(String m : motd)
+							{
+								if(m.length() != 0)
+								{
+									send("/n/" + m, address, port);
+								}
+							}
+							
 							try 
 							{
 								Thread.sleep(50);
@@ -288,12 +362,12 @@ public class Server implements Runnable
 				}
 				else
 				{
-					send("/r/$banned:username", address, port);
+					send("/r/$banned:username/r/" + getBanReason(username, false), address, port);
 				}
 			}
 			else
 			{
-				send("/r/$banned:address", address, port);
+				send("/r/$banned:address/r/" + getBanReason(address.getHostAddress(), true), address, port);
 			}
 				
 		} 
@@ -332,6 +406,14 @@ public class Server implements Runnable
 						clients.add(new ServerClient(username, address, port, id));
 						Logger.log(Level.INFO, "Client " + username + " (ID" + id + ") @ " + address + ":" + port + " connected.");
 						send("/c/" + id, address, port);
+						for(String m : motd)
+						{
+							if(m.length() != 0)
+							{
+								send("/n/" + m, address, port);
+							}
+						}
+						
 						try 
 						{
 							Thread.sleep(50);
@@ -374,12 +456,52 @@ public class Server implements Runnable
 	
 	public boolean bannedUser(String username)
 	{
-		return bannedUsers.contains(username);
+		for(String u : bannedUsers)
+		{
+			String[] check = u.split("/r/");
+			if(check[0].equals(username))
+			{
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	public boolean bannedAddress(String address)
 	{
-		return bannedAddresses.contains(address);
+		for(String a : bannedAddresses)
+		{
+			String[] check = a.split("/r/");
+			if(check[0].equals(address))
+			{
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	public String getBanReason(String search, boolean address)
+	{
+		if(address == false)
+		{
+			for(String u : bannedUsers)
+			{
+				String[] check = u.split("/r/");
+				return check[1];
+			}
+		}
+		else
+		{
+			for(String a : bannedAddresses)
+			{
+				String[] check = a.split("/r/");
+				return check[1];
+			}
+		}
+		
+		return "Banned from server by operator";
 	}
 
 	public void disconnect(int id, boolean status) 

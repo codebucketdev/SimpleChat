@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,17 @@ public class FileManager
 		catch (IOException e) {}
 		
 		return list.toArray(new String[list.size()]);
+	}
+	
+	public static void clearFile(File file)
+	{
+		try 
+		{
+			PrintWriter writer = new PrintWriter(file);
+			writer.print("");
+			writer.close();
+		} 
+		catch (FileNotFoundException e) {}
 	}
 	
 	public static void writeFile(File file, String[] i)

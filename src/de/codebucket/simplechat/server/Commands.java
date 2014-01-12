@@ -104,15 +104,17 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedUsers.add(c.name);
+								s.bannedUsers.add(c.name + "/r/" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned client " + c.name + ": " + getText(args, 1));
 								s.send("/r/$disconnect:" + getText(args, 1), c.address, c.port);
+								s.saveBanned();
 							}
 							else
 							{
-								s.bannedUsers.add(c.name);
+								s.bannedUsers.add(c.name + "/r/Banned from server by operator.");
 								Logger.log(Level.INFO, "Banned client " + c.name + ": Banned from server by operator.");
 								s.send("/r/$disconnect:Banned from server by operator.", c.address, c.port);
+								s.saveBanned();
 							}
 						}
 						else
@@ -135,15 +137,17 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedUsers.add(c.name);
+								s.bannedUsers.add(c.name + "/r/" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned client " + c.name + ": " + getText(args, 1));
 								s.send("/r/$disconnect:" + getText(args, 1), c.address, c.port);
+								s.saveBanned();
 							}
 							else
 							{
-								s.bannedUsers.add(c.name);
+								s.bannedUsers.add(c.name + "/r/Banned from server by operator.");
 								Logger.log(Level.INFO, "Banned client " + c.name + ": Banned from server by operator.");
 								s.send("/r/$disconnect:Banned from server by operator.", c.address, c.port);
+								s.saveBanned();
 							}
 						}
 						else
@@ -157,13 +161,15 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedUsers.add(args[0]);
+								s.bannedUsers.add(args[0] + "/r/" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned client " + args[0] + ": " + getText(args, 1));
+								s.saveBanned();
 							}
 							else
 							{
-								s.bannedUsers.add(args[0]);
+								s.bannedUsers.add(args[0] + "/r/Banned from server by operator.");
 								Logger.log(Level.INFO, "Banned client " + args[0] + ": Banned from server by operator.");
+								s.saveBanned();
 							}
 						}
 						else
@@ -192,15 +198,17 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedAddresses.add(c.address.getHostAddress());
+								s.bannedAddresses.add(c.address.getHostAddress() + "/r/" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned address " + c.address.getHostAddress() + ": " + getText(args, 1));
 								s.send("/r/$disconnect:" + getText(args, 1), c.address, c.port);
+								s.saveBanned();
 							}
 							else
 							{
-								s.bannedAddresses.add(c.address.getHostAddress());
+								s.bannedAddresses.add(c.address.getHostAddress() + "/r/Banned from server by operator.");
 								Logger.log(Level.INFO, "Banned address " + c.address.getHostAddress() + ": Banned from server by operator.");
 								s.send("/r/$disconnect:Banned from server by operator.", c.address, c.port);
+								s.saveBanned();
 							}
 						}
 						else
@@ -223,15 +231,17 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedAddresses.add(c.address.getHostAddress());
+								s.bannedAddresses.add(c.address.getHostAddress() + "/r/" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned address " + c.address.getHostAddress() + ": " + getText(args, 1));
 								s.send("/r/$disconnect:" + getText(args, 1), c.address, c.port);
+								s.saveBanned();
 							}
 							else
 							{
-								s.bannedAddresses.add(c.address.getHostAddress());
+								s.bannedAddresses.add(c.address.getHostAddress() + "/r/Banned from server by operator.");
 								Logger.log(Level.INFO, "Banned address " + c.address.getHostAddress() + ": Banned from server by operator.");
 								s.send("/r/$disconnect:Banned from server by operator.", c.address, c.port);
+								s.saveBanned();
 							}
 						}
 						else
@@ -245,13 +255,15 @@ public class Commands
 						{
 							if(args.length > 1)
 							{
-								s.bannedAddresses.add(args[0]);
+								s.bannedAddresses.add(args[0] + "/r/" + getText(args, 1));
 								Logger.log(Level.INFO, "Banned address " + args[0] + ": " + getText(args, 1));
+								s.saveBanned();
 							}
 							else
 							{
-								s.bannedAddresses.add(args[0]);
+								s.bannedAddresses.add(args[0] + "/r/Banned from server by operator.");
 								Logger.log(Level.INFO, "Banned address " + args[0] + ": Banned from server by operator.");
+								s.saveBanned();
 							}
 						}
 						else
@@ -275,10 +287,12 @@ public class Commands
 					for (int i = 0; i < s.bannedUsers.size(); i++) 
 					{
 						String us = s.bannedUsers.get(i);
-						if(us.equals(args[0]))
+						String[] check = us.split("/r/");
+						if(check[0].equals(args[0]))
 						{
 							s.bannedUsers.remove(i);
 							Logger.log(Level.INFO, "Unbanned client " + args[0] + " by operator.");
+							s.saveBanned();
 							break;
 						}
 					}
@@ -302,10 +316,12 @@ public class Commands
 					for (int i = 0; i < s.bannedAddresses.size(); i++) 
 					{
 						String us = s.bannedAddresses.get(i);
-						if(us.equals(args[0]))
+						String[] check = us.split("/r/");
+						if(check[0].equals(args[0]))
 						{
 							s.bannedAddresses.remove(i);
 							Logger.log(Level.INFO, "Unbanned address " + args[0] + " by operator.");
+							s.saveBanned();
 							break;
 						}
 					}

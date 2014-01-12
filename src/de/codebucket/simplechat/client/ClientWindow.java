@@ -201,11 +201,15 @@ public class ClientWindow extends JFrame implements Runnable
 					}
 					else if (message.startsWith("/r/$banned:username")) 
 					{
-						error("You were banned from the server.");
+						String text = message.substring(3);
+						text = text.split("/r/")[1];
+						error(text);
 					}
 					else if (message.startsWith("/r/$banned:address")) 
 					{
-						error("You were banned from the server.");
+						String text = message.substring(3);
+						text = text.split("/r/")[1];
+						error(text);
 					}
 					else if (message.startsWith("/i/")) 
 					{
