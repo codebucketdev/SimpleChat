@@ -97,7 +97,7 @@ public class Server implements Runnable
 			
 			if(cmd != null)
 			{
-				if(cmd.length() != 0)
+				if(cmd.length() != 0 && !cmd.startsWith(" "))
 				{
 					String[] args = cmd.split(" ");
 					String command = args[0];
@@ -106,6 +106,10 @@ public class Server implements Runnable
 				    list.remove(args[0]);
 				    args = list.toArray(new String[list.size()]);
 					Commands.dispatchCommand(this, command, args, Executor.SERVER);
+				}
+				else
+				{
+					Commands.dispatchCommand(this, "", new String[0], Executor.SERVER);
 				}
 			}
 		}
@@ -320,6 +324,74 @@ public class Server implements Runnable
 		message += "/e/";
 		send(message.getBytes(), address, port);
 	}
+	
+	public void sendMass(final String[] messages, final InetAddress address, final int port)
+	{
+		Thread t = new Thread(new Runnable()
+		{
+	        public void run()
+	        {
+	        	for(String msg : messages)
+	        	{
+	        		if (msg.startsWith("/m/")) 
+	        		{
+	        			String text = msg.substring(3);
+	        			text = text.split("/e/")[0];
+	        			Logger.log(Level.INFO, text);
+	        		}
+	        		for (int i = 0; i < clients.size(); i++) 
+	        		{
+	        			ServerClient client = clients.get(i);
+	        			send(msg.getBytes(), client.address, client.port);
+	        		}
+	        		
+	        		try 
+	        		{
+						Thread.sleep(5);
+					} 
+	        		catch (InterruptedException e) 
+	        		{
+						e.printStackTrace();
+					}
+	        	}
+	        }
+		});
+		t.start();
+	}
+	
+	public void sendMassToAll(final String[] messages, final InetAddress address, final int port)
+	{
+		Thread t = new Thread(new Runnable()
+		{
+	        public void run()
+	        {
+	        	for(String msg : messages)
+	        	{
+	        		send(msg, address, port);
+	        		try 
+	        		{
+						Thread.sleep(5);
+					} 
+	        		catch (InterruptedException e) 
+	        		{
+						e.printStackTrace();
+					}
+	        	}
+	        }
+		});
+		t.start();
+	}
+	
+	public String[] convertText(String[] messages)
+	{
+		List<String> lines = new ArrayList<>();
+		for(String msg : messages)
+		{
+			lines.add("/n/" + msg);
+		}
+		
+		return lines.toArray(new String[lines.size()]);
+	}
 
 	private void process(DatagramPacket packet) 
 	{
@@ -353,13 +425,7 @@ public class Server implements Runnable
 							}
 							
 							sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
-							for(String m : motd)
-							{
-								if(m.length() != 0)
-								{
-									send("/n/" + m, address, port);
-								}
-							}
+							sendMass(convertText(motd), address, port);
 						}
 						else
 						{
@@ -404,8 +470,17 @@ public class Server implements Runnable
 				    list.remove(args[0]);
 				    args = list.toArray(new String[list.size()]);
 					Commands.performCommand(this, command, args, Executor.CLIENT, c);
-					Logger.log(Level.INFO, c.name + " issued server command: " + splitted[1]);
+					Logger.log(Level.INFO, c.name + " issued server command: /" + splitted[1]);
 				}
+				else
+				{
+					Commands.performCommand(this, "", new String[0], Executor.CLIENT, c);
+				}
+			}
+			else
+			{
+				ServerClient c = getClientByName(splitted[0]);
+				Commands.performCommand(this, "", new String[0], Executor.CLIENT, c);
 			}
 		}
 		else if (string.startsWith("/d/")) 
@@ -450,13 +525,7 @@ public class Server implements Runnable
 						}
 						
 						sendToAll("/n/Client " + username + " (ID" + id + ") connected.");
-						for(String m : motd)
-						{
-							if(m.length() != 0)
-							{
-								send("/n/" + m, address, port);
-							}
-						}
+						sendMass(convertText(motd), address, port);
 					}
 					else
 					{

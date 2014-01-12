@@ -350,6 +350,57 @@ public class Commands
 			Logger.log(Level.INFO, "There are " + s.clients.size() + "/128 clients online:");
 			Logger.log(Level.INFO, getClientList(s.clients, 0));
 		}
+		else if (cmd.equalsIgnoreCase("pw")) 
+		{
+			if(args.length != 0) 
+			{
+				if(args[0].equalsIgnoreCase("on"))
+				{
+					if(s.needPassword == false)
+					{
+						s.needPassword = true;
+						Logger.log(Level.INFO, "Turned on password authentication.");
+					}
+					else
+					{
+						Logger.log(Level.INFO, "Password authentication already turned on!");
+					}
+				}
+				else if(args[0].equalsIgnoreCase("off"))
+				{
+					if(s.needPassword == true)
+					{
+						s.needPassword = false;
+						Logger.log(Level.INFO, "Turned off password authentication.");
+					}
+					else
+					{
+						Logger.log(Level.INFO, "Password authentication already turned off!");
+					}
+				}
+				else if(args[0].equalsIgnoreCase("set"))
+				{
+					if(args.length > 1)
+					{
+						String pw = args[1];
+						s.password = pw;
+						Logger.log(Level.INFO, "Set authentication password to \"" + pw + "\"");
+					}
+					else
+					{
+						Logger.log(Level.INFO, "Not enough arguments. Usage: pw <on|off|set> [password]");
+					}
+				}
+				else
+				{
+					Logger.log(Level.INFO, "Bad usage. Usage: pw <on|off|set> [password]");
+				}
+			}
+			else
+			{
+				Logger.log(Level.INFO, "Bad usage. Usage: pw <on|off|set> [password]");
+			}
+		}
 		else if (cmd.equalsIgnoreCase("say"))
 		{
 			String msg = getText(args, 0);
@@ -384,7 +435,7 @@ public class Commands
 					
 					if(c != null)
 					{
-						Logger.log(Level.INFO, "[Console -> " + args[0] + "] " + getText(args, 1));
+						Logger.log(Level.INFO, "[Console -> " + c.name + "] " + getText(args, 1));
 						s.send("/n/Console whispers you: " +  getText(args, 1), c.address, c.port);
 					}
 					else
@@ -398,7 +449,7 @@ public class Commands
 					
 					if(c != null)
 					{
-						Logger.log(Level.INFO, "[Console -> " + args[0] + "] " + getText(args, 1));
+						Logger.log(Level.INFO, "[Console -> " + c.name + "] " + getText(args, 1));
 						s.send("/n/Console whispers you: " +  getText(args, 1), c.address, c.port);
 					}
 					else
@@ -460,8 +511,8 @@ public class Commands
 	{
 		if (cmd.equalsIgnoreCase("list")) 
 		{
-			s.send("There are " + s.clients.size() + "/128 clients online:", user.address, user.port);
-			s.send(getClientList(s.clients, 0), user.address, user.port);
+			String[] send = {"/n/There are " + s.clients.size() + "/128 clients online:", "/n/" + getClientList(s.clients, 0)};
+			s.sendMass(send, user.address, user.port);
 		}
 		else if (cmd.equalsIgnoreCase("me"))
 		{
@@ -472,7 +523,7 @@ public class Commands
 			}
 			else
 			{
-				s.send("Bad usage. Usage: me <message>", user.address, user.port);
+				s.send("/n/Bad usage. Usage: /me <message>", user.address, user.port);
 			}
 		}
 		else if (cmd.equalsIgnoreCase("tell") || cmd.equalsIgnoreCase("msg"))
@@ -485,12 +536,12 @@ public class Commands
 					
 					if(c != null)
 					{
-						s.send("[" + user.name + " -> " + args[0] + "] " + getText(args, 1), user.address, user.port);
+						s.send("/n/[" + user.name + " -> " + c.name + "] " + getText(args, 1), user.address, user.port);
 						s.send("/n/" + user.name + " whispers you: " +  getText(args, 1), c.address, c.port);
 					}
 					else
 					{
-						s.send("Client with ID " + args[0] + " is not online!", user.address, user.port);
+						s.send("/n/Client with ID " + args[0] + " is not online!", user.address, user.port);
 					}
 				}
 				else
@@ -499,18 +550,18 @@ public class Commands
 					
 					if(c != null)
 					{
-						s.send("[" + user.name + " -> " + args[0] + "] " + getText(args, 1), user.address, user.port);
+						s.send("/n/[" + user.name + " -> " + c.name + "] " + getText(args, 1), user.address, user.port);
 						s.send("/n/" + user.name + " whispers you: " +  getText(args, 1), c.address, c.port);
 					}
 					else
 					{
-						s.send("Client " + args[0] + " is not online!", user.address, user.port);
+						s.send("/n/Client " + args[0] + " is not online!", user.address, user.port);
 					}
 				}
 			}
 			else
 			{
-				s.send("Bad usage. Usage: tell <username|ID> <message>", user.address, user.port);
+				s.send("/n/Bad usage. Usage: /tell <username|ID> <message>", user.address, user.port);
 			}
 		}
 		else if (cmd.equalsIgnoreCase("poke"))
@@ -523,12 +574,12 @@ public class Commands
 					
 					if(c != null)
 					{
-						s.send("Poked client " + c.name + ": " + getText(args, 1), user.address, user.port);
+						s.send("/n/Poked client " + c.name + ": " + getText(args, 1), user.address, user.port);
 						s.send("/r/$poke="+user.name+"/m/" + getText(args, 1), c.address, c.port);
 					}
 					else
 					{
-						s.send("Client with ID " + args[0] + " is not online!", user.address, user.port);
+						s.send("/n/Client with ID " + args[0] + " is not online!", user.address, user.port);
 					}
 				}
 				else
@@ -537,23 +588,23 @@ public class Commands
 					
 					if(c != null)
 					{
-						s.send("Poked client " + c.name + ": " + getText(args, 1), user.address, user.port);
+						s.send("/n/Poked client " + c.name + ": " + getText(args, 1), user.address, user.port);
 						s.send("/r/$poke="+user.name+"/m/" + getText(args, 1), c.address, c.port);
 					}
 					else
 					{
-						s.send("Client " + args[0] + " is not online!", user.address, user.port);
+						s.send("/n/Client " + args[0] + " is not online!", user.address, user.port);
 					}
 				}
 			}
 			else
 			{
-				s.send("Bad usage. Usage: poke <username|ID> <message>", user.address, user.port);
+				s.send("/n/Bad usage. Usage: /poke <username|ID> <message>", user.address, user.port);
 			}
 		}
 		else
 		{
-			s.send("Unknown command. Type \"/help\" for help.", user.address, user.port);
+			s.send("/n/Unknown command. Type \"/help\" for help.", user.address, user.port);
 		}
 	}
 	
