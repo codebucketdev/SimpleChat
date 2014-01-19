@@ -35,5 +35,7 @@ public class Logger
 		SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
 		String timestamp = f.format(c.getTime());
 		logFile = new File(path + "/logs/server_" + timestamp + ".log");
+		FileManager.createFile(logFile);
+		FileManager.clearFile(logFile);
 	}
 }

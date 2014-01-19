@@ -142,6 +142,7 @@ public class Server implements Runnable
 		}
 		else
 		{
+			FileManager.createFile(file);
 			FileManager.clearFile(file);
 		}
 	}
@@ -174,6 +175,7 @@ public class Server implements Runnable
 		}
 		else
 		{
+			FileManager.createFile(file);
 			FileManager.clearFile(file);
 		}
 	}
@@ -325,7 +327,7 @@ public class Server implements Runnable
 		send(message.getBytes(), address, port);
 	}
 	
-	public void sendMass(final String[] messages, final InetAddress address, final int port)
+	public void sendMassToAll(final String[] messages, final InetAddress address, final int port)
 	{
 		Thread t = new Thread(new Runnable()
 		{
@@ -339,6 +341,7 @@ public class Server implements Runnable
 	        			text = text.split("/e/")[0];
 	        			Logger.log(Level.INFO, text);
 	        		}
+	        		
 	        		for (int i = 0; i < clients.size(); i++) 
 	        		{
 	        			ServerClient client = clients.get(i);
@@ -359,7 +362,7 @@ public class Server implements Runnable
 		t.start();
 	}
 	
-	public void sendMassToAll(final String[] messages, final InetAddress address, final int port)
+	public void sendMass(final String[] messages, final InetAddress address, final int port)
 	{
 		Thread t = new Thread(new Runnable()
 		{
@@ -450,37 +453,44 @@ public class Server implements Runnable
 		} 
 		else if (string.startsWith("/m/")) 
 		{
-			sendToAll(string);
+			String text = string.substring(3);
+			String[] users = text.split(":");
+			if(check(users[0]))
+			{
+				sendToAll(string);
+			}
 		} 
 		else if (string.startsWith("/b/"))
 		{
 			String text = string.substring(3);
 			String[] splitted = text.split("=");
-			
-			if(splitted.length > 1)
+			if(check(splitted[0]))
 			{
-				String cmd = splitted[1];
-				ServerClient c = getClientByName(splitted[0]);
-				if(cmd.length() != 0)
+				if(splitted.length > 1)
 				{
-					String[] args = cmd.split(" ");
-					String command = args[0];
-				    final List<String> list =  new ArrayList<String>();
-				    Collections.addAll(list, args); 
-				    list.remove(args[0]);
-				    args = list.toArray(new String[list.size()]);
-					Commands.performCommand(this, command, args, Executor.CLIENT, c);
-					Logger.log(Level.INFO, c.name + " issued server command: /" + splitted[1]);
+					String cmd = splitted[1];
+					ServerClient c = getClientByName(splitted[0]);
+					if(cmd.length() != 0)
+					{
+						String[] args = cmd.split(" ");
+						String command = args[0];
+					    final List<String> list =  new ArrayList<String>();
+					    Collections.addAll(list, args); 
+					    list.remove(args[0]);
+					    args = list.toArray(new String[list.size()]);
+						Commands.performCommand(this, command, args, Executor.CLIENT, c);
+						Logger.log(Level.INFO, c.name + " issued server command: /" + splitted[1]);
+					}
+					else
+					{
+						Commands.performCommand(this, "", new String[0], Executor.CLIENT, c);
+					}
 				}
 				else
 				{
+					ServerClient c = getClientByName(splitted[0]);
 					Commands.performCommand(this, "", new String[0], Executor.CLIENT, c);
 				}
-			}
-			else
-			{
-				ServerClient c = getClientByName(splitted[0]);
-				Commands.performCommand(this, "", new String[0], Executor.CLIENT, c);
 			}
 		}
 		else if (string.startsWith("/d/")) 
@@ -542,6 +552,18 @@ public class Server implements Runnable
 		{
 			Logger.log(Level.INFO, string);
 		}
+	}
+	
+	public boolean check(String username)
+	{
+		ServerClient c = getClientByName(username);
+		
+		if(c != null)
+		{
+			return true;
+		}
+		
+		return false;
 	}
 	
 	public boolean multipleUser(String username)

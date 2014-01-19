@@ -21,7 +21,9 @@ import javax.swing.text.DefaultCaret;
 
 import java.awt.Font;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.logging.Level;
 import javax.swing.ScrollPaneConstants;
 
@@ -33,11 +35,15 @@ public class ClientWindow extends JFrame implements Runnable
 	private JTextArea history;
 	private JTextField txtMessage;
 	private DefaultCaret caret;
-	private Thread run, listen, check;
+	private Thread run, listen, check, manage;
 	private Client client;
+	private List<String> historyList;
+	private Integer historyCount;
+	private String historyInput;
 
 	private boolean running = false;
 	private boolean connecting = false;
+	private final int MAX_ATTEMPTS = 5;
 
 	public ClientWindow(String username, String address, int port) 
 	{
@@ -57,6 +63,10 @@ public class ClientWindow extends JFrame implements Runnable
 		{
 			e.printStackTrace();
 		}
+		
+		historyList = new ArrayList<>();
+		historyCount = historyList.size();
+		historyInput = "";
 		
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		setSize(880, 550);
@@ -85,8 +95,56 @@ public class ClientWindow extends JFrame implements Runnable
 		{
 			public void keyPressed(KeyEvent e) 
 			{
+				if (e.getKeyCode() == KeyEvent.VK_UP) 
+				{
+					if(historyCount == historyList.size())
+					{
+						historyInput = txtMessage.getText();
+					}
+					
+					historyCount--;
+					
+					if(historyCount <= -1)
+					{
+						historyCount++;
+						getToolkit().beep();
+						e.consume();
+						return;
+					}
+					
+					if(historyCount == historyList.size())
+					{
+						txtMessage.setText(historyInput);
+						return;
+					}
+					
+					txtMessage.setText(historyList.get(historyCount));
+				}
+				
+				if (e.getKeyCode() == KeyEvent.VK_DOWN)
+				{
+					historyCount++;
+					
+					if(historyCount == historyList.size())
+					{
+						txtMessage.setText(historyInput);
+						return;
+					}
+					
+					if(historyCount >= historyList.size())
+					{
+						historyCount--;
+						getToolkit().beep();
+						e.consume();
+						return;
+					}
+					
+					txtMessage.setText(historyList.get(historyCount));
+				}
+				
 				if (e.getKeyCode() == KeyEvent.VK_ENTER) 
 				{
+					history(txtMessage.getText());
 					if(txtMessage.getText().startsWith("/"))
 					{
 						String cmd = txtMessage.getText().substring(1);
@@ -110,6 +168,7 @@ public class ClientWindow extends JFrame implements Runnable
 		{
 			public void actionPerformed(ActionEvent e) 
 			{
+				history(txtMessage.getText());
 				if(txtMessage.getText().startsWith("/"))
 				{
 					String cmd = txtMessage.getText().substring(1);
@@ -148,6 +207,37 @@ public class ClientWindow extends JFrame implements Runnable
 	{
 		listen();
 	}
+	
+	private void manageServer() 
+	{
+		manage = new Thread("Manage") 
+		{
+			public void run() 
+			{
+				while (running) 
+				{
+					try 
+					{
+						Thread.sleep(2000);
+					} 
+					catch (InterruptedException e) 
+					{
+						e.printStackTrace();
+					}
+					
+					if(client.getAttempts() >= MAX_ATTEMPTS)
+					{
+						disconnect("Connection to server timed out!", false);
+					}
+					else
+					{
+						client.setAttempts(client.getAttempts() +1);
+					}
+				}
+			}
+		};
+		manage.start();
+	}
 
 	private void send(String message, boolean text) 
 	{
@@ -158,6 +248,13 @@ public class ClientWindow extends JFrame implements Runnable
 			message = "/m/" + message;
 		}
 		client.send(message.getBytes());
+	}
+	
+	private void history(String message)
+	{
+		if (message.equals("")) return;
+		historyList.add(message);
+		historyCount = historyList.size();
 	}
 
 	public void listen() 
@@ -175,6 +272,7 @@ public class ClientWindow extends JFrame implements Runnable
 						client.setID(Integer.parseInt(message.split("/c/|/e/")[1]));
 						setTitle(client.getName() + "@" + client.getAddress() + ":" + client.getPort() + " - SimpleChat Client");
 						console(Level.INFO, "Connected to Server " + client.getAddress() + ":" + client.getPort() + "!");
+						manageServer();
 					} 
 					else if (message.startsWith("/m/")) 
 					{
@@ -255,7 +353,7 @@ public class ClientWindow extends JFrame implements Runnable
 			{
 				try 
 	            {
-					Thread.sleep(15*1000);
+					Thread.sleep(10*1000);
 				} 
 	            catch (InterruptedException e) 
 	            {
@@ -378,6 +476,7 @@ public class ClientWindow extends JFrame implements Runnable
 	private void ping(int id)
 	{
 		String text = "/i/" + id + "/e/";
+		client.resetAttempts();
 		send(text, false);
 	}
 
@@ -387,7 +486,7 @@ public class ClientWindow extends JFrame implements Runnable
 		SimpleDateFormat f = new SimpleDateFormat("HH:mm:ss");
 		String stamp = "<" + f.format(c.getTime()) + ">";
 		
-		history.append(stamp + " " + message + "\n\r");
+		history.append(stamp + " " + message + "\n\r");		
 		history.setCaretPosition(history.getDocument().getLength());
 		Logger.log(l, message);
 	}

@@ -81,7 +81,7 @@ public class Login extends JFrame
 		
 		setType(Type.POPUP);
 		setResizable(false);
-		setTitle("SimpleChat v0.8");
+		setTitle("SimpleChat v0.9");
 		setSize(275, 335);
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -95,7 +95,7 @@ public class Login extends JFrame
 		lblTitle.setBounds(10, 11, 249, 32);
 		contentPane.add(lblTitle);
 		
-		JLabel lblAbout = new JLabel("By Codebucket. Version 0.8.");
+		JLabel lblAbout = new JLabel("By Codebucket. Version 0.9");
 		lblAbout.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		lblAbout.setBounds(10, 46, 249, 14);
 		contentPane.add(lblAbout);
@@ -110,6 +110,8 @@ public class Login extends JFrame
 		lblUsername.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		lblUsername.setBounds(10, 25, 229, 14);
 		panel.add(lblUsername);
+		
+		String[] loginData = readLogin();
 		
 		username = new JTextField();
 		username.addKeyListener(new KeyAdapter() 
@@ -131,6 +133,7 @@ public class Login extends JFrame
 		    	}
 		    }
 		});
+		username.setText(loginData[0]);
 		username.setBounds(10, 45, 229, 20);
 		panel.add(username);
 		username.setColumns(10);
@@ -141,6 +144,7 @@ public class Login extends JFrame
 		panel.add(lblAddress);
 		
 		address = new JTextField();
+		address.setText(loginData[1]);
 		address.setColumns(10);
 		address.setBounds(10, 95, 229, 20);
 		panel.add(address);
@@ -170,6 +174,7 @@ public class Login extends JFrame
 		    	}
 		    }
 		});
+		if(isInteger(loginData[2])) port.setText(loginData[2]);
 		port.setColumns(10);
 		port.setBounds(10, 145, 229, 20);
 		panel.add(port);
@@ -201,12 +206,17 @@ public class Login extends JFrame
 						if(isInteger(lPortString))
 						{
 							int lPort = Integer.parseInt(lPortString);
+							saveLogin(lUsername, lAddress, lPort);
 							login(lUsername, lAddress, lPort);
 						}
 						else
 						{
 							getToolkit().beep();
 						}
+					}
+					else
+					{
+						getToolkit().beep();
 					}
 				}
 				else
@@ -224,6 +234,53 @@ public class Login extends JFrame
 	{
 		dispose();
         new ClientWindow(username, address, port);
+	}
+	
+	public String[] readLogin()
+	{
+		File file = new File(getWorkingDirectory() + "/login.txt");
+		if(file.exists())
+		{
+			return FileManager.readFile(file);
+		}
+		else
+		{
+			FileManager.createFile(file);
+			FileManager.clearFile(file);
+			String[] out = { "", "", "" };
+			return out;
+		}
+	}
+	
+	public void saveLogin(String username, String address, int port)
+	{
+		File file = new File(getWorkingDirectory() + "/login.txt");
+		if(file.exists())
+		{
+			String[] write = { username, address, String.valueOf(port) };
+			FileManager.clearFile(file);
+			FileManager.writeFile(file, write);
+		}
+		else
+		{
+			String[] write = { username, address, String.valueOf(port) };
+			FileManager.createFile(file);
+			FileManager.clearFile(file);
+			FileManager.writeFile(file, write);
+		}
+	}
+	
+	public String getWorkingDirectory()
+	{
+		String path = "";
+		try 
+		{
+			String classpath = ClassLoader.getSystemClassLoader().getResource(".").getPath();
+			path = URLDecoder.decode(classpath, "UTF-8");
+			path = path.substring(1, path.length());
+		} 
+		catch (UnsupportedEncodingException e1) {}
+		return path;
 	}
 	
 	private static boolean isInteger(String integer)
@@ -254,7 +311,7 @@ public class Login extends JFrame
 		catch (UnsupportedEncodingException e1) {}
 		
 		Logger.createLog(path);
-		Logger.log(Level.INFO, "Starting SimpleChat v0.8");
+		Logger.log(Level.INFO, "Starting SimpleChat v0.9");
 		Logger.log(Level.INFO, "Working directory: " + path);
 		Logger.log(Level.INFO, "Initialising SimpleChat Client..");
 		

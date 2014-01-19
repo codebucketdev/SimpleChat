@@ -49,6 +49,16 @@ public class FileManager
 		}
 	}
 	
+	public static boolean createFile(File file)
+	{
+		try 
+		{
+			return file.createNewFile();
+		} 
+		catch (IOException e) {}
+		return false;
+	}
+	
 	public static void writeFile(File file, String[] i)
 	{
 	    BufferedWriter buffwriter = null;

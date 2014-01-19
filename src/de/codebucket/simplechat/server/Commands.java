@@ -501,6 +501,18 @@ public class Commands
 				Logger.log(Level.INFO, "Bad usage. Usage: poke <username|ID> <message>");
 			}
 		}
+		else if (cmd.equalsIgnoreCase("help"))
+		{
+			String[] send = { "Available commands for console: ", "stop: Stops the server.", "refresh: Loads the ban list and Motd new.", "say: Writes a message in console.", 
+					"kick: Removes a user from the server.", "kickall: Removes all from the server.", "ban: Bans a user from the server.", "ban-ip: Bans an IP address from the server.", 
+					"unban: Unbans a user.", "unban-ip: Unbans an IP address.", "pw: Turns the password authentication on or off, or set a new password.", "list: displays the list of all players with ID who are online.", 
+					"me: Writes a status message.", "tell: Writes a user a private message.", "poke: Pokes a user with a message." };
+			
+			for(String msg : send)
+			{
+				Logger.log(Level.INFO, msg);
+			}
+		}
 		else
 		{
 			Logger.log(Level.INFO, "Unknown command. Type \"/help\" for help.");
@@ -601,6 +613,12 @@ public class Commands
 			{
 				s.send("/n/Bad usage. Usage: /poke <username|ID> <message>", user.address, user.port);
 			}
+			
+		}
+		else if (cmd.equalsIgnoreCase("help"))
+		{
+			String[] send = { "/n/Available commands for client: ", "/n//list: displays the list of all players with ID who are online.", "/n//me: Writes a status message.", "/n//tell: Writes a user a private message.", "/n//poke: Pokes a user with a message." };
+			s.sendMass(send, user.address, user.port);
 		}
 		else
 		{

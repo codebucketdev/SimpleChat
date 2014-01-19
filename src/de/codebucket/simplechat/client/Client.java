@@ -17,6 +17,7 @@ public class Client
 	private InetAddress ip;
 	private Thread send;
 	private int ID = -1;
+	private int attempt = 0;
 
 	public Client(String name, String address, int port) 
 	{
@@ -38,6 +39,21 @@ public class Client
 	public int getPort() 
 	{
 		return port;
+	}
+	
+	public int getAttempts()
+	{
+		return attempt;
+	}
+	
+	public void setAttempts(int attempts)
+	{
+		attempt = attempts;
+	}
+	
+	public void resetAttempts()
+	{
+		attempt = 0;
 	}
 
 	public boolean openConnection(String address, int port) 
