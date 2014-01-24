@@ -187,7 +187,6 @@ public class Server implements Runnable
 		{
 			String classpath = ClassLoader.getSystemClassLoader().getResource(".").getPath();
 			path = URLDecoder.decode(classpath, "UTF-8");
-			path = path.substring(1, path.length());
 		} 
 		catch (UnsupportedEncodingException e1) {}
 		return path;

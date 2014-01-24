@@ -53,21 +53,9 @@ public class Login extends JFrame
 		//LOAD OS SYSTEM LOOK AND FEEL STYLE
 		try 
 		{
-			UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} 
-		catch (ClassNotFoundException e) 
-		{
-			e.printStackTrace();
-		} 
-		catch (InstantiationException e) 
-		{
-			e.printStackTrace();
-		} 
-		catch (IllegalAccessException e) 
-		{
-			e.printStackTrace();
-		} 
-		catch (UnsupportedLookAndFeelException e) 
+		catch (Exception e) 
 		{
 			e.printStackTrace();
 		}
@@ -133,7 +121,15 @@ public class Login extends JFrame
 		    	}
 		    }
 		});
-		username.setText(loginData[0]);
+		
+		if(loginData.length > 0)
+		{
+			username.setText(loginData[0]);
+		}
+		else
+		{
+			username.setText("");
+		}
 		username.setBounds(10, 45, 229, 20);
 		panel.add(username);
 		username.setColumns(10);
@@ -144,7 +140,14 @@ public class Login extends JFrame
 		panel.add(lblAddress);
 		
 		address = new JTextField();
-		address.setText(loginData[1]);
+		if(loginData.length > 1)
+		{
+			address.setText(loginData[1]);
+		}
+		else
+		{
+			address.setText("");
+		}
 		address.setColumns(10);
 		address.setBounds(10, 95, 229, 20);
 		panel.add(address);
@@ -174,7 +177,22 @@ public class Login extends JFrame
 		    	}
 		    }
 		});
-		if(isInteger(loginData[2])) port.setText(loginData[2]);
+		
+		if(loginData.length > 2)
+		{
+			if(isInteger(loginData[2])) 
+			{
+				port.setText(loginData[2]);
+			}
+			else
+			{
+				port.setText("");
+			}
+		}
+		else
+		{
+			port.setText("");
+		}
 		port.setColumns(10);
 		port.setBounds(10, 145, 229, 20);
 		panel.add(port);
@@ -277,7 +295,6 @@ public class Login extends JFrame
 		{
 			String classpath = ClassLoader.getSystemClassLoader().getResource(".").getPath();
 			path = URLDecoder.decode(classpath, "UTF-8");
-			path = path.substring(1, path.length());
 		} 
 		catch (UnsupportedEncodingException e1) {}
 		return path;
@@ -306,7 +323,6 @@ public class Login extends JFrame
 		{
 			String classpath = ClassLoader.getSystemClassLoader().getResource(".").getPath();
 			path = URLDecoder.decode(classpath, "UTF-8");
-			path = path.substring(1, path.length());
 		} 
 		catch (UnsupportedEncodingException e1) {}
 		
