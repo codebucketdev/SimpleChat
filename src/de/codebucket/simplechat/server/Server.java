@@ -8,7 +8,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -398,7 +397,12 @@ public class Server implements Runnable
 
 	private void process(DatagramPacket packet) 
 	{
-		String string = new String(packet.getData(), 0, packet.getLength(), Charset.forName("UTF-8"));
+		String string = new String(packet.getData(), 0, packet.getLength());
+		try 
+		{
+			string = URLDecoder.decode(string, "UTF-8");
+		} 
+		catch (UnsupportedEncodingException e1) {}
 		if (string.startsWith("/c/")) 
 		{
 			String username = string.substring(3, string.length());

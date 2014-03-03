@@ -1,12 +1,13 @@
 package de.codebucket.simplechat.client;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
 import java.util.logging.Level;
 
 public class Client 
@@ -89,7 +90,12 @@ public class Client
 		{
 			Logger.log(Level.SEVERE, "Error while receiving data from server " + getAddress() + ":" + getPort() + "!");
 		}
-		String message = new String(packet.getData(), 0, packet.getLength(), Charset.forName("UTF-8"));
+		String message = new String(packet.getData(), 0, packet.getLength());
+		try 
+		{
+			message = URLDecoder.decode(message, "UTF-8");
+		} 
+		catch (UnsupportedEncodingException e1) {}
 		return message;
 	}
 
