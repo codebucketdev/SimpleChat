@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.logging.Level;
 
 public class Client 
@@ -88,7 +89,7 @@ public class Client
 		{
 			Logger.log(Level.SEVERE, "Error while receiving data from server " + getAddress() + ":" + getPort() + "!");
 		}
-		String message = new String(packet.getData(), 0, packet.getLength());
+		String message = new String(packet.getData(), 0, packet.getLength(), Charset.forName("UTF-8"));
 		return message;
 	}
 

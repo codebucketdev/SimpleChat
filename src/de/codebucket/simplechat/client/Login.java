@@ -25,6 +25,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 
 @SuppressWarnings("unused")
@@ -69,7 +70,7 @@ public class Login extends JFrame
 		
 		setType(Type.POPUP);
 		setResizable(false);
-		setTitle("SimpleChat v0.9");
+		setTitle("SimpleChat v0.95");
 		setSize(275, 335);
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -83,7 +84,7 @@ public class Login extends JFrame
 		lblTitle.setBounds(10, 11, 249, 32);
 		contentPane.add(lblTitle);
 		
-		JLabel lblAbout = new JLabel("By Codebucket. Version 0.9");
+		JLabel lblAbout = new JLabel("By Codebucket. Version 0.95");
 		lblAbout.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		lblAbout.setBounds(10, 46, 249, 14);
 		contentPane.add(lblAbout);
@@ -265,7 +266,7 @@ public class Login extends JFrame
 		{
 			FileManager.createFile(file);
 			FileManager.clearFile(file);
-			String[] out = { "", "", "" };
+			String[] out = { "Guest" + new Random().nextInt(1000), "chat.codebucket.de", "8192" };
 			return out;
 		}
 	}
@@ -327,12 +328,11 @@ public class Login extends JFrame
 		catch (UnsupportedEncodingException e1) {}
 		
 		Logger.createLog(path);
-		Logger.log(Level.INFO, "Starting SimpleChat v0.9");
+		Logger.log(Level.INFO, "Starting SimpleChat v0.95");
 		Logger.log(Level.INFO, "Working directory: " + path);
 		Logger.log(Level.INFO, "Initialising SimpleChat Client..");
 		
 		final Login frame = new Login();
-		
 		if(args.length != 0)
 		{
 			Logger.log(Level.INFO, "Found auto-connect arguments: " + getArgsAmount(args[0]));

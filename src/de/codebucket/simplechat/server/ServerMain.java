@@ -39,7 +39,7 @@ public class ServerMain
 		catch (UnsupportedEncodingException e1) {}
 		
 		Logger.createLog(path);
-		Logger.log(Level.INFO, "Running SimpleChat Server v0.9");
+		Logger.log(Level.INFO, "Running SimpleChat Server v0.95");
 		Logger.log(Level.INFO, "Working directory: " + path);
 		Logger.log(Level.INFO, "Initialising SimpleChat Server..");
 		
